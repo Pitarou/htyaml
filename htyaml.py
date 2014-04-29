@@ -765,4 +765,4 @@ if __name__ == '__main__':
     from doctest import testmod
     testmod()
   else:
-    print(Nodes.parse_yaml(open(argv[1])).render())
+    print(HTYAML.parse_yaml(open(argv[1])).render(markdown = True))
