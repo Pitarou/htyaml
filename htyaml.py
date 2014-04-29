@@ -173,7 +173,7 @@ class Node(HTYAML):
 `parse` returns an instance of one of the child classes,
 which should implement the `render` method.
 
-    >>> Node.parse_yaml('- un & escaped').render()
+    >>> Node.parse_yaml('un & escaped').render()
     'un & escaped'
 
     >>> Node.parse_yaml('hr:').render()
@@ -189,18 +189,26 @@ which should implement the `render` method.
         result = cls.fail(yaml_node, 'not a valid HTML node')
     return result
 
+  @staticmethod
+  def _add_prefix(text, kwargs):
+    prefix = _kwarg_with_default(kwargs, 'line_prefix')
+    if not prefix:
+      return text
+    lines = text.splitlines(keepends = True)
+    return ''.join(prefix + line for line in lines)
+
 class Text(Node):
   '''Parses and renders text and text-like nodes.
 `parse` returns an instance of one of the child classes,
 which should implement the `render` method.
 
-    >>> literal = Text.parse(['un & escaped'])
+    >>> literal = Text.parse('un & escaped')
     >>> type(literal) #doctest: +ELLIPSIS
     <class '...Literal'>
     >>> literal.render()
     'un & escaped'
 
-    >>> escapable = Text.parse('this is & escaped')
+    >>> escapable = Text.parse(['this is & escaped'])
     >>> type(escapable) #doctest: +ELLIPSIS
     <class '...EscapableText'>
     >>> escapable.render()
@@ -222,35 +230,28 @@ which should implement the `render` method.
 
 class Literal(Text):
   '''\
-Handles unescaped text, which is represented in yaml by a string wrapped in list.
-Nulls are also accepted.
+Handles unescaped text, which is represented in yaml by a plain string.
 
 Take care that the yaml parser does not convert your text to something else.
 e.g.:
 
-    >>> Literal.parse_yaml('- 123')
-    NotParsed(message = 'Literal: list content not text', yaml_node = [123])
+    >>> Literal.parse_yaml('123')
+    NotParsed(message = 'Literal: not text', yaml_node = 123)
 
-    >>> Literal.parse_yaml('- "123"')
-    Literal(literal = '123', yaml_node = ['123'])
+    >>> Literal.parse_yaml('"123"')
+    Literal(literal = '123', yaml_node = '123')
 '''
 
   @classmethod
   def parse(cls, yaml_node):
-    if type(yaml_node) is not list or len(yaml_node) is not 1:
-      return cls.fail(yaml_node, 'not a list of length 1')
 
-    inner = yaml_node[0]
-    if type(inner) is not str:
-      return cls.fail(yaml_node, 'list content not text')
+    if type(yaml_node) is not str:
+      return cls.fail(yaml_node, 'not text')
 
-    return cls(
-      literal = inner,
-      yaml_node = yaml_node
-    )
+    return cls(literal = yaml_node, yaml_node = yaml_node)
 
   def render(self, **kwargs):
-    return self.literal
+    return self._add_prefix(self.literal, kwargs)
 
   def preferred_render_style(self, **kwargs):
     return render_inline
@@ -258,9 +259,9 @@ e.g.:
 class EscapableText(Text):
   r'''Text with conversion or HTML entity escaping. Nulls are also accepted.
 
-    >>> t = EscapableText.parse('Jekyll & Hyde')
+    >>> t = EscapableText.parse_yaml('- Jekyll & Hyde')
     >>> t
-    EscapableText(text = 'Jekyll & Hyde', yaml_node = 'Jekyll & Hyde')
+    EscapableText(text = 'Jekyll & Hyde', yaml_node = ['Jekyll & Hyde'])
     >>> t.render()
     'Jekyll &amp; Hyde'
     >>> t.render(markdown = True)
@@ -268,21 +269,21 @@ class EscapableText(Text):
 
 Beware of numbers, booleans and so on:
 
-    >>> EscapableText.parse_yaml('yes')
-    NotParsed(message = 'EscapableText: not text or null', yaml_node = True)
+    >>> EscapableText.parse_yaml('- yes')
+    NotParsed(message = 'EscapableText: not singleton list containing text or null', yaml_node = [True])
 
-    >>> EscapableText.parse_yaml('null').render()
+    >>> EscapableText.parse_yaml('- null').render()
     ''
 
 To avoid these problems, wrap the text in quotes:
 
-    >>> EscapableText.parse_yaml('"yes"').render()
+    >>> EscapableText.parse_yaml('- "yes"').render()
     'yes'
 
 With `markdown = True` the text is also passed through the Markdown2
 renderer. Specify Markdown2 extra features with the `markdown_extras` argument:
 
-    >>> print(EscapableText.parse_yaml("""|
+    >>> print(EscapableText.parse_yaml("""- |
     ...  Markdown Text
     ...  =============
     ...
@@ -299,9 +300,12 @@ renderer. Specify Markdown2 extra features with the `markdown_extras` argument:
 
   @classmethod
   def parse(cls, yaml_node):
-    if type(yaml_node) is not str and yaml_node is not None:
-      return cls.fail(yaml_node, 'not text or null')
-    return cls(text = yaml_node, yaml_node = yaml_node)
+    if type(yaml_node) is not list or len (yaml_node) is not 1:
+      return cls.fail(yaml_node, 'not a singleton list')
+    text = yaml_node[0]
+    if type(text) is not str and text is not None:
+      return cls.fail(yaml_node, 'not singleton list containing text or null')
+    return cls(text = text, yaml_node = yaml_node)
 
   def render(self, **kwargs):
 
@@ -319,11 +323,7 @@ renderer. Specify Markdown2 extra features with the `markdown_extras` argument:
       result = escape(result, quote = False)
 
     line_prefix = _kwarg_with_default(kwargs, 'line_prefix')
-    if line_prefix:
-      lines = result.splitlines(keepends = True)
-      result = ''.join(line_prefix + line for line in lines)
-
-    return result 
+    return self._add_prefix(result, kwargs)
 
   def preferred_render_style(self, **kwargs):
     return render_block if _kwarg_with_default(kwargs, 'markdown') else render_inline
@@ -535,7 +535,7 @@ A self-closing element can only contain a dict or null.
     >>> Element.parse_yaml('div: text').render()
     '<div>text</div>'
 
-    >>> Element.parse_yaml('div: markdown text').render(markdown = True)
+    >>> Element.parse_yaml('div:\n - - markdown text').render(markdown = True)
     '<div>\n  <p>markdown text</p>\n</div>'
 
     >>> Element.parse({'div': []}).render()
@@ -600,14 +600,14 @@ class EmptyElement(Element):
 
 
 class ElementWithContent(Element):
-  r"""Denoted by a singleton dict containing null or text;
+  r"""Denoted by a singleton dict containing text;
 or a list containing an attribute dict and child nodes.
 
     >>> e = ElementWithContent.parse_yaml('''
     ...   div:
     ...     - class: jumbotron
     ...       ?
-    ...     - content
+    ...     - - content
     ... ''')
     >>> print(e.render(markdown = True))
     <div class="jumbotron">
@@ -745,9 +745,6 @@ class Nodes(HTYAML):
 
     kwargs['line_prefix'] = ''
     return ' '.join(node.render(**kwargs) for node in self)
-
-
-
 
 
   def __len__(self):

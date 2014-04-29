@@ -78,133 +78,40 @@ class TestHTYAML(ParserRendererTest):
   def test_parse_render(self):
     self.check_rendering(
       HTYAML,
-      '- - foo & bar',
+      'foo & bar',
       'foo & bar'
     )
 
 class TestLiteral(unittest.TestCase):
 
   def setUp(self):
-    self.good_case_normal_text = ['some unescaped text']
-    self.good_case_normal_text_yaml = '- some unescaped text\n'
+    self.good_case_normal_text = 'some unescaped text'
     self.good_case_normal_text_expected = (
       "Literal(literal = 'some unescaped text', "
-      "yaml_node = ['some unescaped text'])"
+      "yaml_node = 'some unescaped text')"
     )
 
-    self.bad_case_unwrapped_text = 'bad case'
-    self.bad_case_unwrapped_text_yaml = 'bad case\n'
-    self.bad_case_unwrapped_text_expected = (
-      "NotParsed(message = 'Literal: not a list of length 1', "
-      "yaml_node = 'bad case')"
-    )
-
-    self.bad_case_multiple_element_list = ['bad', 'case']
-    self.bad_case_multiple_element_list_yaml = '- bad\n- case\n'
-    self.bad_case_multiple_element_list_expected = (
-      "NotParsed(message = 'Literal: not a list of length 1', "
-      "yaml_node = ['bad', 'case'])"
-    )
-
-    self.bad_case_empty_list = []
-    self.bad_case_empty_list_yaml = '[]\n'
-    self.bad_case_empty_list_expected = (
-      "NotParsed(message = 'Literal: not a list of length 1', "
-      "yaml_node = [])"
-    )
-    
-    self.bad_case_not_str = [123]
-    self.bad_case_not_str_yaml = '- 123'
+    self.bad_case_not_str = 123
+    self.bad_case_not_str_yaml = '123'
     self.bad_case_not_str_expected = (
-      "NotParsed(message = 'Literal: list content not text', "
+      "NotParsed(message = 'Literal: not text', "
       "yaml_node = [123])"
     )
-    
-    self.render_text = 'foo & bar'
-    self.render_text_src = [self.render_text]
-    self.render_text_yaml_src = '- {text}\n'.format(text = self.render_text)
-
-  def compare(self, unparsed, rpr):
-    self.assertEqual(repr(Literal.parse(unparsed)), rpr)
-
-  def compare_yaml(self, yaml_src, rpr):
-    self.assertEqual(repr(Literal.parse_yaml(yaml_src)), rpr)
-
 
   def test_normal_text(self):
-    self.compare(
-      self.good_case_normal_text,
-      self.good_case_normal_text_expected
-    )
-
-  def test_normal_text_yaml(self):
-    self.compare_yaml(
-      self.good_case_normal_text_yaml,
-      self.good_case_normal_text_expected
-    )
-
-  def test_unwrapped_text(self): 
-    self.compare(
-      self.bad_case_unwrapped_text,
-      self.bad_case_unwrapped_text_expected
-    )
-
-  def test_unwrapped_text_yaml(self):
-    self.compare_yaml(
-      self.bad_case_unwrapped_text_yaml,
-      self.bad_case_unwrapped_text_expected
-    )
-
-  def test_multiple_element_list(self):
-    self.compare(
-      self.bad_case_multiple_element_list,
-      self.bad_case_multiple_element_list_expected
-    )
-
-  def test_multiple_element_list_yaml(self):
-    self.compare_yaml(
-      self.bad_case_multiple_element_list_yaml,
-      self.bad_case_multiple_element_list_expected
-    )
-
-  def test_empty_list(self):
-    self.compare(
-      self.bad_case_empty_list,
-      self.bad_case_empty_list_expected
-    )
-
-  def test_empty_list_yaml(self):
-    self.compare_yaml(
-      self.bad_case_empty_list_yaml,
-      self.bad_case_empty_list_expected
+    self.assertEqual(
+      Literal.parse_yaml('literal').render(),
+      'literal'
     )
 
   def test_not_str(self):
-    self.compare(
-      self.bad_case_not_str,
-      self.bad_case_not_str_expected
-    )
-
-  def test_not_str_yaml(self):
-    self.compare_yaml(
-      self.bad_case_not_str_yaml,
-      self.bad_case_not_str_expected
-    )
-
-  def test_render(self):
     self.assertEqual(
-      Literal.parse(self.render_text_src).render(),
-      self.render_text
+      Literal.parse_yaml('123'),
+      NotParsed(message = 'Literal: not text', yaml_node = 123)
     )
 
-  def test_render_yaml(self):
-    self.assertEqual(
-      Literal.parse_yaml(self.render_text_yaml_src).render(),
-      self.render_text
-    )
-
-  def test_preferred_render_stule(self):
-    self.assertEqual(Literal.parse(['']).preferred_render_style(), render_inline)
+  def test_preferred_render_style(self):
+    self.assertEqual(Literal.parse('').preferred_render_style(), render_inline)
 
 
 
@@ -533,8 +440,8 @@ class TestElementWithContent(ParserRendererTest):
     self.check_rendering(
       ElementWithContent,
       '''p:
-        - - unescaped &amp; text''',
-      '<p>unescaped &amp; text</p>'
+        - - escaped & text''',
+      '<p>escaped &amp; text</p>'
     )
 
   def test_nested_content(self):
@@ -572,12 +479,6 @@ class TestElementWithContent(ParserRendererTest):
       render_inline
     )
 
-  def test_preferred_render_style_according_to_children_empty(self):
-    self.assertEqual(
-      ElementWithContent.parse_yaml('ins:').preferred_render_style(),
-      render_inline
-    )
-
   def test_preferred_render_style_according_to_children_inline_content(self):
     self.assertEqual(
       ElementWithContent.parse_yaml('ins:\n  - text\n  - more text').preferred_render_style(),
@@ -602,28 +503,21 @@ class TestText(ParserRendererTest):
   def test_literal(self):
     self.check_rendering(
       Text,
-      '[literal & text]',
+      'literal & text',
       'literal & text'
-    )
-
-  def test_escapable_null(self):
-    self.check_rendering(
-      Text,
-      'null',
-      ''
     )
 
   def test_escapable_escaping(self):
     self.check_rendering(
       Text,
-      'foo & bar',
+      '- foo & bar',
       'foo &amp; bar'
     ) 
 
   def test_markdown(self):
     self.check_rendering(
       Text,
-      'foo',
+      '- foo',
       '<p>foo</p>',
       markdown = True
     )
@@ -634,28 +528,24 @@ class TestEscapableText(ParserRendererTest):
 
   def test_bad_text(self):
     node = {'bad': 'node'}
-    expected = NotParsed(message = 'EscapableText: not text or null', yaml_node = node)
+    expected = NotParsed(
+      message = 'EscapableText: not a singleton list',
+      yaml_node = node
+    )
     actual = EscapableText.parse(node)
     self.assertEqual(expected, actual)
 
-  def test_null(self):
+  def test_escaping(self):
     self.check_rendering(
       EscapableText,
-      'null',
-      ''
-    )
-
-  def test_loose_escaping(self):
-    self.check_rendering(
-      EscapableText,
-      'foo & bar',
+      '- foo & bar',
       'foo &amp; bar'
     )
 
   def test_markdown(self):
     self.check_rendering(
       EscapableText,
-      ('''|
+      ('''- |
         Markdown Text
         =============
         
@@ -672,13 +562,13 @@ class TestEscapableText(ParserRendererTest):
 
   def test_preferred_render_style_normal(self):
     self.assertEqual(
-      EscapableText.parse('').preferred_render_style(),
+      EscapableText.parse(['']).preferred_render_style(),
       render_inline
     )
 
   def test_preferred_render_style_markdown(self):
     self.assertEqual(
-      EscapableText.parse('').preferred_render_style(markdown = True),
+      EscapableText.parse(['']).preferred_render_style(markdown = True),
       render_block
     )
 
@@ -747,14 +637,14 @@ class TestNode(ParserRendererTest):
   def test_literal(self):
     self.check_rendering(
       Node,
-      '- literal & text',
+      'literal & text',
       'literal & text'
     )
 
   def test_escapable_text(self):
     self.check_rendering(
       Node,
-      'escapable & text',
+      '- escapable & text',
       'escapable &amp; text',
       markdown = False
     )
@@ -794,14 +684,14 @@ class TestNodes(ParserRendererTest):
   def test_literal(self):
     self.check_rendering(
       Nodes,
-      '- - literal & text',
+      '- literal & text',
       'literal & text'
     )
 
   def test_escapable_text(self):
     self.check_rendering(
       Nodes,
-      'escapable & text',
+      '- - escapable & text',
       'escapable &amp; text'
     )
 
@@ -834,7 +724,7 @@ class TestNodes(ParserRendererTest):
     self.check_rendering(
       Nodes,
       (
-        '- - <!DOCTYPE html>\n'
+        '- <!DOCTYPE html>\n'
         '- html:\n'
         '  - - lang: en\n'
         '  - head:\n'
@@ -877,21 +767,18 @@ class TestNodes(ParserRendererTest):
   def test_preferred_render_style_empty(self):
     self.assertEqual(Nodes.parse([]).preferred_render_style(), render_inline)
 
-  def test_preferred_render_style_none(self):
-    self.assertEqual(Nodes.parse(None).preferred_render_style(), render_inline)
-
   def test_preferred_render_style_singleton_literal(self):
-    self.assertEqual(Nodes.parse([['']]).preferred_render_style(), render_inline)
+    self.assertEqual(Nodes.parse('').preferred_render_style(), render_inline)
 
   def test_preferred_render_style_singleton_text(self):
     self.assertEqual(
-      Nodes.parse(['']).preferred_render_style(),
+      Nodes.parse([['']]).preferred_render_style(),
       render_inline
     )
 
   def test_preferred_render_style_singleton_markdown(self):
     self.assertEqual(
-      Nodes.parse(['']).preferred_render_style(markdown = True),
+      Nodes.parse([['']]).preferred_render_style(markdown = True),
       render_block
     )
 

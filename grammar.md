@@ -1,22 +1,49 @@
-Text is text, but with entity escaping.
+Text is literal, unescaped text.
 
-> *YAML:* `Hello & world!`
+> *YAML:* `<!DOCTYPE html>`
 >
-> *Python:* `'Hello & world!'`
+> *Python:* `'<!DOCTYPE html>'`
 >
-> *Rendered HTML:* `Hello &amp; world!`
+> *Rendered HTML:* `<!DOCTYPE html>`
 
-With `markdown = True`, text is passed through the Markdown2 interpreter,
-rather than just being escaped. Pass extra options to the Markdown2 interpreter
+But we usually want a list of nodes:
+
+> *YAML:*
+>
+>     - <!DOCTYPE html>
+>     - # etc...
+>
+> *Python:*
+>
+>     [
+>       '<!DOCTYPE html>',
+>       # etc.
+>     ]
+>
+> *Rendered HTML:*
+>
+>     <!DOCTYPE html>
+
+If the text is wrapped in a singleton list, the text may be transformed
+in some way.
+
+If the `markdown = True` option is set, the text will be
+parsed and rendered by Markdown2. Extra options can be passed to Markdown2
 with the `markdown_extras` option.
 
-    >>> text = 'Markdown -- a "humane" document format'
+    >>> text = '- - Markdown -- a "humane" & readable document format'
     >>> parsed = HTYAML.parse_yaml(text)
     >>> print(parsed.render(
     ...   markdown = True,
     ...   markdown_extras = ['smarty-pants'] # smarten up quotes and hyphens
     ... ))
-    <p>Markdown &#8212; a &#8220;humane&#8221; document format</p>
+    <p>Markdown &#8212; a &#8220;humane&#8221; &amp; readable document format</p>
+
+If the `markdown = False` option is set, the text will be escaped
+with HTML entities:
+
+    >>> print(parsed.render(markdown = False))
+    Markdown --- a humane &amp; readable document format.
 
 If you get a yaml parsing error, check that your text is not being interepreted
 as a non-textual object. Strings like '`null`', '`yes`', '`on`', '`42`'
@@ -62,14 +89,15 @@ ordering helps with unit testing.
 
 As a kind of shorthand, for elements with just a single item of text content
 and no attributes, the text content can be included directly in the dict.
+This text is escaped / Markdowned.
 
-> *YAML*:  `em: emphatically`
+> *YAML*:  `em: &c.`
 >
-> *Python*: `{'em': 'emphatically'}`
+> *Python*: `{'em': '&c.'}`
 >
-> *Rendered HTML*: `<em>emphatically</em>`
+> *Rendered HTML*: `&amp;c.`
 
-But in all other cases, the element's content is represented as a list.
+But in all other cases, an element's content is represented as a list.
 
 > *YAML:*
 > 
@@ -99,7 +127,7 @@ But in all other cases, the element's content is represented as a list.
 
 If the first entry of the list of content is a dict with zero entries,
 or more than one entry, it is treated as an attribute list.
-(If it has one entry, it is treated as an element.)
+(If it has exactly one entry, it is treated as an element.)
 
 > *YAML:*
 >
@@ -180,28 +208,3 @@ discarded by the parser:
 >     <div class="place-kitten">
 >       <p>Can haz pleis?</p>
 >     </div>
-
-
-Similarly, literal text is escaped by wrapping it in a list.
-
-> *YAML:*
->
->   div:
->    - This is automatically & escaped.
->    - - I hand escaped &amp; this one.
->
-> *Python:*
->
->   {
->     'div': [
->       'This is automatically & escaped.',
->       ['I hand escaped &amp; this one.'],
->     ]
->   }
->
-> *HTML:*
->
->   <div>
->     This is automatically &amp; escaped.
->     I hand escaped &amp; this one.
->   </div>

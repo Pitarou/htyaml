@@ -4,9 +4,11 @@ HTML is ugly, but YAML and Markdown are pretty, so lets use them.
 
 For instance this:
 
-    - - <!DOCTYPE html>
+    - <!DOCTYPE html>
+
     - html:
        - - lang: en
+
        - head:
 
           - meta:
@@ -24,13 +26,14 @@ For instance this:
              rel: stylesheet
              href: //netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css
 
-          - title: [[Bootstrap 101 Template]]
+          - title: Bootstrap Jumbotron Example
 
        - body:
+
           - div:
              - - class: jumbotron
 
-             - |
+             - - |
                  Hello, world!
                  =============
 
@@ -38,13 +41,15 @@ For instance this:
                  component for calling extra attention to featured content
                  or information.
 
-                 <a class="btn btn-primary btn-lg">Learn more</a>
+             - a:
+                - - class: btn btn-primary btn-lg
+                - Learn more
 
           - script:
              type: text_javascript
              src: js/bootstrap.min.js
 
-Gets rendered (with the markdown option) as:
+Gets rendered (with the Markdown option) as:
 
     <!DOCTYPE html>
     <html lang="en">
@@ -53,7 +58,7 @@ Gets rendered (with the markdown option) as:
         <meta content="IE=edge" http-equiv="X-UA-Compatible">
         <meta content="width=device-width, initial-scale=1" name="viewport">
         <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
-        <title>Bootstrap 101 Template</title>
+        <title>Bootstrap Jumbotron Example</title>
       </head>
       <body>
         <div class="jumbotron">
@@ -62,16 +67,11 @@ Gets rendered (with the markdown option) as:
           <p>This is a simple hero unit, a simple jumbotron-style
           component for calling extra attention to featured content
           or information.</p>
-
-          <p><a class="btn btn-primary btn-lg">Learn more</a></p>
+          <a class="btn btn-primary btn-lg">Learn more</a>
         </div>
         <script src="js/bootstrap.min.js" type="text_javascript">
       </body>
     </html>
 
-There's still a lot of work to do before this can be used for rendering web pages,
-including:
-
- - refine the syntax (in particular, I want to swap the literal text
-   with the unescaped text)
- - add moustache support
+Before this system is fit for real-world use, it needs some kind of templating
+support. A moustache-style rendering system would seem a natural choice.
