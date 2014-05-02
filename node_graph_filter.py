@@ -1,25 +1,16 @@
 #!/usr/bin/env python
 import re
 import yaml
-from yaml import Loader, SequenceNode, MappingNode, ScalarNode
+from yaml import SequenceNode, MappingNode, ScalarNode
+import stubbly_resolver
 
-string_tag = yaml.compose('arbitrary string').tag
-stubbly = 'stubbly'
-stubbly_tag = '!' + stubbly
-stubbly_recognizer = re.compile(r'^\$')
-stubbly_quote_as_strings_tag = '/'.join((stubbly_tag, 'quote-as-strings'))
-stubbly_quote_as_strings_recognizer = re.compile(r'^\$quote-as-strings')
-
-def make_loader(stream):
-  loader = Loader(stream)
-  loader.add_implicit_resolver(
-    stubbly_quote_as_strings_tag,
-    stubbly_quote_as_strings_recognizer,
-    first = None
-  )
-  loader.add_implicit_resolver(stubbly_tag, stubbly_recognizer, first = None)
-  return loader
-
+_string_tag = yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG
+_quote_as_strings_tag = stubbly_resolver.TAGS[
+  stubbly_resolver.QUOTE_AS_STRINGS
+]['tag']
+_symbol_tag = stubbly_resolver.TAGS[
+  stubbly_resolver.SYMBOL
+]['tag']
 
 def scalars_to_strings(node, everything = False):
   r'''Turn scalars into strings, except for dict keys and !stubbly content.
@@ -41,7 +32,7 @@ Also turn !stubbly/quote-as-strings content into strings.
     ...     - $code: 6 # SHOULD be converted to strings
     ...   ?
     ... """
-    >>> loader = make_loader(document)
+    >>> loader = stubbly_resolver.loader(document)
     >>> loader.check_data()
     True
     >>> node = loader.get_node()
@@ -57,7 +48,7 @@ Also turn !stubbly/quote-as-strings content into strings.
     - 2:
       - '3'
       - '4'
-    !stubbly '$code':
+    !stubbly/symbol '$code':
     - 4
     - !stubbly/quote-as-strings '$quote-as-strings':
       - '5': '6'
@@ -74,10 +65,10 @@ Also turn !stubbly/quote-as-strings content into strings.
     )
 
   if type(node) is ScalarNode:
-    if tag == string_tag:
+    if tag == _string_tag:
       return node
     return ScalarNode(
-      tag = string_tag,
+      tag = _string_tag,
       value = value
     )
 
@@ -102,7 +93,7 @@ def mapping_item_to_strings(item, everything = False):
     value = scalars_to_strings(value, everything = True)
     return (key, value)
 
-  if key.tag.startswith(stubbly_tag):
+  if key.tag.startswith(stubbly_resolver.TAG_PREFIX):
     return check_code_for_quote_as_strings(item)
   else:
     return (key, scalars_to_strings(value))
@@ -110,7 +101,7 @@ def mapping_item_to_strings(item, everything = False):
 
 def check_code_for_quote_as_strings(item):
   key, value = item
-  if key.tag is stubbly_quote_as_strings_tag:
+  if key.tag is _quote_as_strings_tag:
     return (
       key,
       scalars_to_strings(value, everything = True)
