@@ -16,6 +16,10 @@ class TestTagData(TestCase):
       stubbly_resolver.TAGS[stubbly_resolver.SYMBOL]['tag'],
       '!stubbly/symbol'
     )
+    self.assertEqual(
+      stubbly_resolver.TAGS[stubbly_resolver.ESCAPED_DOLLAR]['tag'],
+      '!stubbly/escaped-dollar'
+    )
 
 class TestMakeLoader(TestCase):
   "Test that words beginning with '$' and '$quote-as-strings' are tagged"
@@ -27,6 +31,7 @@ class TestMakeLoader(TestCase):
       "- $code-block:\n"
       "  - another-normal-node\n"
       "  - $quote-as-strings: foo\n"
+      "  - $$escaped-dollar\n"
     )
     expected = (
       "- normal_node: 1\n"
@@ -34,6 +39,7 @@ class TestMakeLoader(TestCase):
       "- !stubbly/symbol '$code-block':\n"
       "  - another-normal-node\n"
       "  - !stubbly/quote-as-strings '$quote-as-strings': foo\n"
+      "  - !stubbly/escaped-dollar '$$escaped-dollar'\n"
     )
     loader = stubbly_resolver.loader(document)
     self.assertTrue(loader.check_data())

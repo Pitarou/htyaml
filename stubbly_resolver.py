@@ -5,6 +5,7 @@ import re
 STUBBLY = 'stubbly'
 QUOTE_AS_STRINGS = 'quote-as-strings'
 SYMBOL = 'symbol'
+ESCAPED_DOLLAR = 'escaped-dollar'
 TAG_PREFIX = '!' + STUBBLY + '/'
 
 TAGS = {
@@ -18,9 +19,13 @@ TAGS = {
     # the exact string '$quote-as-string'
     'regexp': re.compile(r'^\$'+QUOTE_AS_STRINGS+'$'),
   },
+  ESCAPED_DOLLAR: {
+    'tag': TAG_PREFIX + ESCAPED_DOLLAR,
+    'regexp': re.compile(r'^\$\$'),
+  }
 }
 
-TAG_RESOLVER_SEQUENCE = [QUOTE_AS_STRINGS, SYMBOL]
+TAG_RESOLVER_SEQUENCE = [ESCAPED_DOLLAR, QUOTE_AS_STRINGS, SYMBOL]
 
 def loader(stream):
   'Instantiate a yaml.Loader with implicit resolvers for the stubbly tags.'
