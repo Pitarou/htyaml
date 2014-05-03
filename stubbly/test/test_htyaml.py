@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 import unittest
 import doctest
-import htyaml
-from htyaml import HTYAML, NotParsed, Literal, EmptyElement,\
-                   ElementWithContent, AttributeValue, UnambiguousAttributes,\
-                   PotentiallyAmbiguousAttributes, Attributes, \
-                   Text, EscapableText, Element, Node, Nodes, \
-                   render_inline, render_block, render_according_to_children,\
-                   defaults, _kwarg_with_default, _tag_render_style
+from .. import htyaml
+from ..htyaml import HTYAML, NotParsed, Literal, EmptyElement,\
+  ElementWithContent, AttributeValue, UnambiguousAttributes,\
+  PotentiallyAmbiguousAttributes, Attributes, \
+  Text, EscapableText, Element, Node, Nodes, \
+  render_inline, render_block, render_according_to_children,\
+  defaults, _kwarg_with_default, _tag_render_style
 
 class TestKwargWithDefault(unittest.TestCase):
   def test_found(self):
@@ -83,20 +82,6 @@ class TestHTYAML(ParserRendererTest):
     )
 
 class TestLiteral(unittest.TestCase):
-
-  def setUp(self):
-    self.good_case_normal_text = 'some unescaped text'
-    self.good_case_normal_text_expected = (
-      "Literal(literal = 'some unescaped text', "
-      "yaml_node = 'some unescaped text')"
-    )
-
-    self.bad_case_not_str = 123
-    self.bad_case_not_str_yaml = '123'
-    self.bad_case_not_str_expected = (
-      "NotParsed(message = 'Literal: not text', "
-      "yaml_node = [123])"
-    )
 
   def test_normal_text(self):
     self.assertEqual(
@@ -808,6 +793,3 @@ class TestNodes(ParserRendererTest):
 def load_tests(loader, tests, ignore):
   tests.addTests(doctest.DocTestSuite(htyaml))
   return tests
-
-if __name__ == '__main__':
-  unittest.main()

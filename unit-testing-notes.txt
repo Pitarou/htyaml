@@ -1,0 +1,14 @@
+To run the unit tests, just go to the home directory and call:
+
+    python -m unittest
+
+And it will automatically look for modules called `test_*.py`.
+
+You can pass in the name of the module or module path as another argument.
+
+Further options:
+
+  --failfast
+  --buffer  capture stout and stderr, and include them in failure reports
+  --catch   *ctrl-c* aborts after the current test has finished
+            press *ctrl-c* again to raise `KeyboardInterrupt`

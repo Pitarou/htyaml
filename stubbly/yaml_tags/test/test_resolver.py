@@ -1,23 +1,22 @@
-#!/usr/bin/env python
 import unittest
 from unittest import TestCase
 import doctest
 import yaml
-import stubbly_resolver
+from .. import resolver
 
 
 class TestTagData(TestCase):
   def test_tags(self):
     self.assertEqual(
-      stubbly_resolver.TAGS[stubbly_resolver.QUOTE_AS_STRINGS]['tag'],
+      resolver.TAGS[resolver.QUOTE_AS_STRINGS]['tag'],
       '!stubbly/quote-as-strings'
     )
     self.assertEqual(
-      stubbly_resolver.TAGS[stubbly_resolver.SYMBOL]['tag'],
+      resolver.TAGS[resolver.SYMBOL]['tag'],
       '!stubbly/symbol'
     )
     self.assertEqual(
-      stubbly_resolver.TAGS[stubbly_resolver.ESCAPED_DOLLAR]['tag'],
+      resolver.TAGS[resolver.ESCAPED_DOLLAR]['tag'],
       '!stubbly/escaped-dollar'
     )
 
@@ -41,13 +40,10 @@ class TestMakeLoader(TestCase):
       "  - !stubbly/quote-as-strings '$quote-as-strings': foo\n"
       "  - !stubbly/escaped-dollar '$$escaped-dollar'\n"
     )
-    loader = stubbly_resolver.loader(document)
+    loader = resolver.loader(document)
     self.assertTrue(loader.check_data())
     self.assertEqual(expected, yaml.serialize(loader.get_node()))
 
 def load_tests(loader, tests, ignore):
-  tests.addTests(doctest.DocTestSuite(stubbly_resolver))
+  tests.addTests(doctest.DocTestSuite(resolver))
   return tests
-
-if __name__ == '__main__':
-  unittest.main()

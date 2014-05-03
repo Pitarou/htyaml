@@ -2,14 +2,14 @@
 import re
 import yaml
 from yaml import SequenceNode, MappingNode, ScalarNode
-import stubbly_resolver
+from .yaml_tags import resolver
 
 _string_tag = yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG
-_quote_as_strings_tag = stubbly_resolver.TAGS[
-  stubbly_resolver.QUOTE_AS_STRINGS
+_quote_as_strings_tag = resolver.TAGS[
+  resolver.QUOTE_AS_STRINGS
 ]['tag']
-_symbol_tag = stubbly_resolver.TAGS[
-  stubbly_resolver.SYMBOL
+_symbol_tag = resolver.TAGS[
+  resolver.SYMBOL
 ]['tag']
 
 def scalars_to_strings(node, everything = False):
@@ -32,7 +32,7 @@ Also turn !stubbly/quote-as-strings content into strings.
     ...     - $code: 6 # SHOULD be converted to strings
     ...   ?
     ... """
-    >>> loader = stubbly_resolver.loader(document)
+    >>> loader = resolver.loader(document)
     >>> loader.check_data()
     True
     >>> node = loader.get_node()
@@ -93,7 +93,7 @@ def mapping_item_to_strings(item, everything = False):
     value = scalars_to_strings(value, everything = True)
     return (key, value)
 
-  if key.tag.startswith(stubbly_resolver.TAG_PREFIX):
+  if key.tag.startswith(resolver.TAG_PREFIX):
     return check_code_for_quote_as_strings(item)
   else:
     return (key, scalars_to_strings(value))
