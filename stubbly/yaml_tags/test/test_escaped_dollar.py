@@ -1,13 +1,8 @@
 import unittest
 from unittest import TestCase
-import doctest
 from io import StringIO
 import yaml
 from .. import resolver, escaped_dollar
-
-def load_tests(loader, tests, ignore):
-  tests.addTests(doctest.DocTestSuite(resolver))
-  return tests
 
 class TestEscapedDollar(TestCase):
   yaml_src = (
@@ -20,7 +15,7 @@ class TestEscapedDollar(TestCase):
 
   ]
   expected_representation = (
-    "[!stubbly/escaped-dollar '$$escaped', not $$escaped]\n"
+    "[$$escaped, not $$escaped]\n"
   )
 
   def setUp(self):
@@ -48,3 +43,7 @@ class TestEscapedDollar(TestCase):
       self.expected_representation,
       stream.getvalue()
     ) 
+
+  def test_acts_like_string(self):
+    self.assertEqual('$', escaped_dollar.EscapedDollar('$$'))
+    self.assertEqual(escaped_dollar.EscapedDollar('$$'), '$')

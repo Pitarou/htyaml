@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import doctest
 import yaml
-from . import resolver
 
 class EscapedDollar(str):
   def __new__(cls, string):
@@ -17,6 +16,6 @@ def constructor(loader, node):
 
 def representer(dumper, data):
   return dumper.represent_scalar(
-    resolver.TAGS[resolver.ESCAPED_DOLLAR]['tag'],
+    yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG,
     '$'+data
   )
