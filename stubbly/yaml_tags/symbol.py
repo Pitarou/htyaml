@@ -1,20 +1,22 @@
-import yaml
 from .stubbly import StubblyObject
 
-class EscapedDollar(str, StubblyObject):
+class Symbol(StubblyObject, str):
 
-  resolver_regexp = r'^\$\$'
+  # Any string starting with '$', but not with '$$',
+  # except '$quote-as-strings'
+  resolver_regexp = r'^\$(?!\$|quote-as-strings$)'
   resolver_first = '$'
-
+  
   def __new__(cls, string):
-    if string.startswith('$$'):
-      string = string[1:]
+    if string.startswith('$'):
+      string = string [1:]
     return str.__new__(cls, string)
 
   def __repr__(self):
     return (
       self.__class__.__name__ + '(' + repr('$' + self) + ')'
-  ) 
+    )
+    
 
   @classmethod
   def from_yaml(cls, loader, node):

@@ -1,16 +1,8 @@
 #!/usr/bin/env python
-import re
 import yaml
 from yaml import SequenceNode, MappingNode, ScalarNode
-from .yaml_tags import resolver
-
-_string_tag = yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG
-_quote_as_strings_tag = resolver.TAGS[
-  resolver.QUOTE_AS_STRINGS
-]['tag']
-_symbol_tag = resolver.TAGS[
-  resolver.SYMBOL
-]['tag']
+from yaml.resolver import BaseResolver
+from .yaml_tags import *
 
 def scalars_to_strings(node, everything = False):
   r'''Turn scalars into strings, except for dict keys and !stubbly content.
@@ -32,7 +24,7 @@ Also turn !stubbly/quote-as-strings content into strings.
     ...     - $code: 6 # SHOULD be converted to strings
     ...   ?
     ... """
-    >>> loader = resolver.loader(document)
+    >>> loader = yaml.Loader(document)
     >>> loader.check_data()
     True
     >>> node = loader.get_node()
@@ -48,11 +40,11 @@ Also turn !stubbly/quote-as-strings content into strings.
     - 2:
       - '3'
       - '4'
-    !stubbly/symbol '$code':
+    $code:
     - 4
-    - !stubbly/quote-as-strings '$quote-as-strings':
+    - $quote-as-strings:
       - '5': '6'
-      - $code: '6'
+      - '$code': '6'
     ?
     : ''
   '''
@@ -65,10 +57,10 @@ Also turn !stubbly/quote-as-strings content into strings.
     )
 
   if type(node) is ScalarNode:
-    if tag == _string_tag:
+    if tag == BaseResolver.DEFAULT_SCALAR_TAG:
       return node
     return ScalarNode(
-      tag = _string_tag,
+      tag = BaseResolver.DEFAULT_SCALAR_TAG,
       value = value
     )
 
@@ -93,7 +85,7 @@ def mapping_item_to_strings(item, everything = False):
     value = scalars_to_strings(value, everything = True)
     return (key, value)
 
-  if key.tag.startswith(resolver.TAG_PREFIX):
+  if key.tag.startswith(QuoteAsStrings.tag_prefix):
     return check_code_for_quote_as_strings(item)
   else:
     return (key, scalars_to_strings(value))
@@ -101,7 +93,7 @@ def mapping_item_to_strings(item, everything = False):
 
 def check_code_for_quote_as_strings(item):
   key, value = item
-  if key.tag is _quote_as_strings_tag:
+  if key.tag is QuoteAsStrings.yaml_tag:
     return (
       key,
       scalars_to_strings(value, everything = True)
