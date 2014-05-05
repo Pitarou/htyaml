@@ -127,7 +127,7 @@ class TestQuoteAsStrings(TestCase):
   )
 
   expected_object = [
-    QuoteAsStrings('$quote-as-strings'),
+    QuoteAsStrings(),
     Symbol('$dont-quote-as-strings')
   ]
 
@@ -139,8 +139,8 @@ class TestQuoteAsStrings(TestCase):
 
   def test_repr(self):
     self.assertEqual(
-      repr(QuoteAsStrings('$quote-as-strings')),
-      "QuoteAsStrings('$quote-as-strings')"
+      repr(QuoteAsStrings()),
+      "QuoteAsStrings()"
     )
 
   def test_resolver(self):

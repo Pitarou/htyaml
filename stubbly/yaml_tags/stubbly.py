@@ -28,15 +28,23 @@ class StubblyObjectMetaclass(yaml.YAMLObjectMetaclass):
         first = first 
       )
 
-
-
 StubblyObject = StubblyObjectMetaclass(
   'StubblyObject', (yaml.YAMLObject,), {}
 )
 
-StubblyObject.__doc__ = '''
+StubblyObject.__doc__ = '''\n
 Extension of YAMLObject that automatically infers the yaml_tag
 field from the class' name, and automatically registers
 a resolver from the supplied `resolver_regexp` and
 `resolver_first` fields.
 '''
+
+class SingletonStubblyObject(StubblyObject):
+  '''Singleton version of StubblyObject.'''
+  _instances = {}
+  def __new__(cls, *args, **kwargs):
+    if cls not in cls._instances:
+      cls._instances[cls] = super(
+        SingletonStubblyObject, cls
+      ).__new__(cls, *args, **kwargs)
+    return cls._instances[cls]

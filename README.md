@@ -73,5 +73,12 @@ Gets rendered (with the Markdown option) as:
       </body>
     </html>
 
-Before this system is fit for real-world use, it needs some kind of templating
-support. A moustache-style rendering system would seem a natural choice.
+There are also building blocks in place for a tweaked version of the
+YAML parser that:
+
+- treats everything as a string literal (i.e. so we avoid problems like
+  'on' being rendered as 'true')
+- has special handling for strings beginning with '$', especially as keys
+  in dictionaries
+
+These can form the syntactic basis of a Moustache-like template language.

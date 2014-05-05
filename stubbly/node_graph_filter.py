@@ -1,10 +1,13 @@
-#!/usr/bin/env python
 import yaml
 from yaml import SequenceNode, MappingNode, ScalarNode
 from yaml.resolver import BaseResolver
 from .yaml_tags import *
 
-def scalars_to_strings(node, everything = False):
+[BASE, SYMBOL, QUOTE_AS_STRINGS] = range(3)
+STUBBLY_TAG_PREFIX = Symbol.tag_prefix
+STRING_TAG = BaseResolver.DEFAULT_SCALAR_TAG
+
+def scalars_to_strings(node, state = BASE):
   r'''Turn scalars into strings, except for dict keys and !stubbly content.
 Also turn !stubbly/quote-as-strings content into strings.
 
@@ -50,100 +53,41 @@ Also turn !stubbly/quote-as-strings content into strings.
   '''
   tag = node.tag
   value = node.value
+
   if type(node) is SequenceNode:
     return SequenceNode(
       tag = tag,
-      value = [scalars_to_strings(item, everything) for item in value]
+      value = [scalars_to_strings(item, state) for item in value]
     )
 
-  if type(node) is ScalarNode:
-    if tag == BaseResolver.DEFAULT_SCALAR_TAG:
-      return node
-    return ScalarNode(
-      tag = BaseResolver.DEFAULT_SCALAR_TAG,
-      value = value
+  if type(node) is MappingNode:
+    return MappingNode(
+      tag = tag,
+      value = [mapping_item_to_strings(item, state) for item in value]
     )
 
-  return MappingNode(
-    tag = tag,
-    value = [
-      mapping_item_to_strings(
-        item,
-        everything
-      ) for item in value
-    ]
-  )
-
-  
-
-
-def mapping_item_to_strings(item, everything = False):
-  key, value = item
-
-  if everything:
-    key = scalars_to_strings(key, everything = True)
-    value = scalars_to_strings(value, everything = True)
-    return (key, value)
-
-  if key.tag.startswith(QuoteAsStrings.tag_prefix):
-    return check_code_for_quote_as_strings(item)
-  else:
-    return (key, scalars_to_strings(value))
-
-
-def check_code_for_quote_as_strings(item):
-  key, value = item
-  if key.tag is QuoteAsStrings.yaml_tag:
-    return (
-      key,
-      scalars_to_strings(value, everything = True)
-    )
-  return (
-    key,
-    search_for_quote_as_strings(value)
-  )
-
-
-def search_for_quote_as_strings(node):
-
-  if type(node) is ScalarNode:
+  if (tag == STRING_TAG or
+      state is SYMBOL or
+      (state is BASE and tag.startswith(STUBBLY_TAG_PREFIX))):
     return node
 
-  tag = node.tag 
-  value = node.value
-
-  if type(node) is SequenceNode:
-    return SequenceNode(
-        tag = tag,
-        value = [search_for_quote_as_strings(item) for item in value]
-    )
-
-  return MappingNode(
-    tag = tag,
-    value = [check_code_for_quote_as_strings(item) for item in value]
+  return ScalarNode(
+    tag = STRING_TAG,
+    value = value
   )
 
+def mapping_item_to_strings(item, state = BASE):
 
-def load_as_strings(stream):
-  '''Like yaml.load (kinda ... I'm still getting to grips with the API),
-but with a filter that converts all scalars to strings.
-
-    >>> load_as_strings('[null, 1]')
-    ['null', '1']
-'''
-  loader = yaml.Loader(stream)
-  loader.check_node()
-  node = loader.get_node()
-  node = scalars_to_strings(node)
-  if type(node) is SequenceNode:
-    return loader.construct_sequence(node)
-  if type(node) is MappingNode:
-    return loader.construct_mapping(node)
-  return loader.construct_scalar(node)
-
-
-import yaml
-
-if __name__ == '__main__':
-  from doctest import testmod
-  testmod()
+  key, value = item
+  tag = key.tag
+  if state is QUOTE_AS_STRINGS and tag != STRING_TAG:
+    key_ = ScalarNode(tag = STRING_TAG, value = key.value)
+  else:
+    key_ = key
+  if state is QUOTE_AS_STRINGS or tag == QuoteAsStrings.yaml_tag:
+    next_state = QUOTE_AS_STRINGS
+  elif state is SYMBOL or tag == Symbol.yaml_tag:
+    next_state = SYMBOL
+  else:
+    next_state = BASE
+  return (key_, scalars_to_strings(value, state = next_state))

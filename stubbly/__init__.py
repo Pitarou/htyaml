@@ -1,0 +1,1 @@
+from .stubbly_loader import load
