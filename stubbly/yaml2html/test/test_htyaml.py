@@ -1,59 +1,16 @@
-import unittest
+from unittest import TestCase
 import doctest
 from .. import htyaml
 from ..htyaml import HTYAML, NotParsed, Literal, EmptyElement,\
   ElementWithContent, AttributeValue, UnambiguousAttributes,\
   PotentiallyAmbiguousAttributes, Attributes, \
-  Text, EscapableText, Element, Node, Nodes, \
-  render_inline, render_block, render_according_to_children,\
-  defaults, _kwarg_with_default, _tag_render_style
+  Text, EscapableText, Element, Node, Nodes
 
-class TestKwargWithDefault(unittest.TestCase):
-  def test_found(self):
-    self.assertEqual(_kwarg_with_default({'a': 1}, 'a'), 1)
-
-  def test_not_found(self):
-    self.assertFalse(_kwarg_with_default({'a': 1}, 'markdown'))
-
-class TestTagRenderStyle(unittest.TestCase):
-  def test_inline_default(self):
-    self.assertEqual(_tag_render_style({}, 'i'), render_inline)
-
-  def test_block_default(self):
-    self.assertEqual(_tag_render_style({}, 'p'), render_block)
-
-  def test_according_to_children_default(self):
-    self.assertEqual(_tag_render_style({}, 'del'), render_according_to_children)
-
-  def test_override_with_kwargs(self):
-    self.assertEqual(
-      _tag_render_style({'del_render_style': render_block}, 'del'),
-      render_block
-    )
-
-  def test_not_found(self):
-    self.assertEqual(_tag_render_style({}, 'foo'), render_block)
-
-  def test_upper_case(self):
-    self.assertEqual(
-      _tag_render_style(
-        {'foo_render_style': render_inline},
-        'FOO'
-      ),
-      render_inline
-    )
-
-  def test_not_found(self):
-    self.assertEqual(
-      _tag_render_style(
-        {'unknown_element_render_style': render_according_to_children},
-        'foo'
-      ),
-      render_according_to_children
-    )
+from ..settings import RENDER_INLINE, RENDER_BLOCK,\
+  RENDER_ACCORDING_TO_CHILDREN
 
 
-class ParserRendererTest(unittest.TestCase):
+class ParserRendererTest(TestCase):
 
   def check_rendering(self, cls, yaml_src, expected, **kwargs):
     actual = cls.parse_yaml(yaml_src).render(**kwargs)
@@ -80,8 +37,17 @@ class TestHTYAML(ParserRendererTest):
       'foo & bar',
       'foo & bar'
     )
+class TestNotParsed(TestCase):
+  def test_render(self):
+    self.assertEqual(
+      NotParsed(
+        yaml_node = 'foo',
+        message = 'bad node'
+      ).render(),
+      'Could not parse:\nfoo\n...\n\nbad node'
+    )
 
-class TestLiteral(unittest.TestCase):
+class TestLiteral(TestCase):
 
   def test_normal_text(self):
     self.assertEqual(
@@ -96,7 +62,7 @@ class TestLiteral(unittest.TestCase):
     )
 
   def test_preferred_render_style(self):
-    self.assertEqual(Literal.parse('').preferred_render_style(), render_inline)
+    self.assertEqual(Literal.parse('').preferred_render_style(), RENDER_INLINE)
 
 
 
@@ -362,19 +328,19 @@ class TestEmptyElement(ParserRendererTest):
   def test_preferred_render_style_block(self):
     self.assertEqual(
       EmptyElement.parse_yaml('hr:').preferred_render_style(),
-      render_block
+      RENDER_BLOCK
     )
 
   def test_preferred_render_style_inline(self):
     self.assertEqual(
       EmptyElement.parse({'img': {'src': 'header.png'}}).preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
-  def test_render_according_to_children(self):
+  def test_RENDER_ACCORDING_TO_CHILDREN(self):
     self.assertEqual(
       EmptyElement.parse_yaml('script: ').preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
 
@@ -455,25 +421,25 @@ class TestElementWithContent(ParserRendererTest):
   def test_preferred_render_style_block(self):
     self.assertEqual(
       ElementWithContent.parse_yaml('p: some text').preferred_render_style(),
-      render_block
+      RENDER_BLOCK
     )
 
   def test_preferred_render_style_inline(self):
     self.assertEqual(
       ElementWithContent.parse_yaml('i: some text').preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
   def test_preferred_render_style_according_to_children_inline_content(self):
     self.assertEqual(
       ElementWithContent.parse_yaml('ins:\n  - text\n  - more text').preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
   def test_preferred_render_style_according_to_children_block_content(self):
     self.assertEqual(
       ElementWithContent.parse_yaml('ins:\n - p: text').preferred_render_style(),
-      render_block
+      RENDER_BLOCK
     )
 
 
@@ -548,13 +514,13 @@ class TestEscapableText(ParserRendererTest):
   def test_preferred_render_style_normal(self):
     self.assertEqual(
       EscapableText.parse(['']).preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
   def test_preferred_render_style_markdown(self):
     self.assertEqual(
       EscapableText.parse(['']).preferred_render_style(markdown = True),
-      render_block
+      RENDER_BLOCK
     )
 
 
@@ -750,33 +716,33 @@ class TestNodes(ParserRendererTest):
     )
 
   def test_preferred_render_style_empty(self):
-    self.assertEqual(Nodes.parse([]).preferred_render_style(), render_inline)
+    self.assertEqual(Nodes.parse([]).preferred_render_style(), RENDER_INLINE)
 
   def test_preferred_render_style_singleton_literal(self):
-    self.assertEqual(Nodes.parse('').preferred_render_style(), render_inline)
+    self.assertEqual(Nodes.parse('').preferred_render_style(), RENDER_INLINE)
 
   def test_preferred_render_style_singleton_text(self):
     self.assertEqual(
       Nodes.parse([['']]).preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
   def test_preferred_render_style_singleton_markdown(self):
     self.assertEqual(
       Nodes.parse([['']]).preferred_render_style(markdown = True),
-      render_block
+      RENDER_BLOCK
     )
 
   def test_preferred_render_style_multi_literals(self):
     self.assertEqual(
       Nodes.parse([[''], ['']]).preferred_render_style(),
-      render_inline
+      RENDER_INLINE
     )
 
   def test_preferred_render_style_mixed(self):
     self.assertEqual(
       Nodes.parse([[''], {'p': 'content'}]).preferred_render_style(),
-      render_block
+      RENDER_BLOCK
     )
 
   def test_len(self):

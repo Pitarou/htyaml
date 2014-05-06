@@ -1,66 +1,8 @@
 #!/usr/bin/env python
-from sys import hexversion
 import yaml
 import markdown2
+from .settings import *
 
-# html.escape superseded cgi.escape in Python 3.2.
-#
-# As far as I know, they both work the same so long
-# as you are explicit about the optional `quote`
-# argument.
-if hexversion >= 0x03020000:
-  from html import escape
-else:
-  from cgi import escape
-
-render_inline ='render inline' 
-render_block = 'render block' 
-render_according_to_children = 'render according to children'
-
-_elements_rendered_inline = [
-  'a', 'abbr', 'acronym', 'b', 'bdo', 'big', 'cite',
-  'code', 'dfn', 'em', 'i', 'img', 'input', 'kbd', 'label',
-  'q', 'samp', 'select', 'small', 'span', 'strong',
-  'sub', 'sup', 'textarea', 'tt', 'var'
-]
-
-_elements_rendered_according_to_children = [
-  'button', 'del', 'ins', 'map', 'object', 'script'
-]
-
-_elements_rendered_block = [
-  'address', 'article', 'aside', 'audio', 'blockquote', 'br', 'canvas', 'dd', 
-  'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2',
-  'h3', 'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'li', 'noscript', 'ol',
-  'output', 'p', 'pre', 'section', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead',
-  'tr', 'ul', 'video'
-]
-
-defaults = {
-  'markdown': False,
-  'line_prefix': '',
-  'markdown_extras': [],
-  'unknown_element_render_style': render_block,
-}
-
-_render_style_table_suffix = '_render_style'
-for (tags, render_style) in (
-  (_elements_rendered_inline, render_inline),
-  (_elements_rendered_according_to_children, render_according_to_children),
-  (_elements_rendered_block, render_block),
-):
-  for tag in tags:
-    defaults[tag + _render_style_table_suffix] = render_style
-
-def _kwarg_with_default(kwargs, arg_name, not_found = None):
-  return kwargs[arg_name] if arg_name in kwargs else defaults[arg_name]
-
-def _tag_render_style(kwargs, tag):
-  kwarg = tag.lower() + _render_style_table_suffix
-  try:
-    return _kwarg_with_default(kwargs, kwarg)
-  except KeyError:
-    return _kwarg_with_default(kwargs, 'unknown_element_render_style')
 
 class HTYAML(object):
   '''Immutable dict-like object. Child classes should implement render and parse.
@@ -159,7 +101,6 @@ class NotParsed(HTYAML):
   _render_template = (
     'Could not parse:\n'
     '{yaml_node}\n'
-    '\n'
     '{message}'
   )
   def render(self):
@@ -167,6 +108,8 @@ class NotParsed(HTYAML):
         yaml_node = yaml.dump(self.yaml_node, default_flow_style = False),
         message = self.message
       )
+
+
 
 class Node(HTYAML):
   r'''Parses and renders text and HTML elements.
@@ -191,7 +134,7 @@ which should implement the `render` method.
 
   @staticmethod
   def _add_prefix(text, kwargs):
-    prefix = _kwarg_with_default(kwargs, 'line_prefix')
+    prefix = get_kwarg_with_default(kwargs, 'line_prefix')
     if not prefix:
       return text
     lines = text.splitlines(keepends = True)
@@ -254,7 +197,7 @@ e.g.:
     return self._add_prefix(self.literal, kwargs)
 
   def preferred_render_style(self, **kwargs):
-    return render_inline
+    return RENDER_INLINE
 
 class EscapableText(Text):
   r'''Text with conversion or HTML entity escaping. Nulls are also accepted.
@@ -314,19 +257,19 @@ renderer. Specify Markdown2 extra features with the `markdown_extras` argument:
     if result is None:
       return ''
 
-    markdown = _kwarg_with_default(kwargs, 'markdown')
+    markdown = get_kwarg_with_default(kwargs, 'markdown')
     if markdown:
-      extras = _kwarg_with_default(kwargs, 'markdown_extras')
+      extras = get_kwarg_with_default(kwargs, 'markdown_extras')
       result = markdown2.markdown(result, extras = extras)
       result = result[:-1] # remove the trailing newline
     else:
       result = escape(result, quote = False)
 
-    line_prefix = _kwarg_with_default(kwargs, 'line_prefix')
+    line_prefix = get_kwarg_with_default(kwargs, 'line_prefix')
     return self._add_prefix(result, kwargs)
 
   def preferred_render_style(self, **kwargs):
-    return render_block if _kwarg_with_default(kwargs, 'markdown') else render_inline
+    return RENDER_BLOCK if get_kwarg_with_default(kwargs, 'markdown') else RENDER_INLINE
 
 
 class Attributes(Node):
@@ -586,15 +529,15 @@ class EmptyElement(Element):
     return self._render_template.format(
       tag = self.tag,
       attributes = self.attributes.render(**kwargs),
-      line_prefix = _kwarg_with_default(kwargs, 'line_prefix')
+      line_prefix = get_kwarg_with_default(kwargs, 'line_prefix')
     )
 
   def preferred_render_style(self, **kwargs):
-    style = _tag_render_style(kwargs, self.tag)
-    if style == render_according_to_children:
+    style = get_tag_render_style(kwargs, self.tag)
+    if style == RENDER_ACCORDING_TO_CHILDREN:
       # This shouldn't really happen, but let's accommodate it
       # as best we can.
-      return render_inline
+      return RENDER_INLINE
     else:
      return style
 
@@ -655,8 +598,8 @@ or a list containing an attribute dict and child nodes.
     )
 
   def preferred_render_style(self, **kwargs):
-    style = _tag_render_style(kwargs, self.tag)
-    if style != render_according_to_children:
+    style = get_tag_render_style(kwargs, self.tag)
+    if style != RENDER_ACCORDING_TO_CHILDREN:
       return style
     return self.nodes.preferred_render_style()
 
@@ -668,13 +611,13 @@ or a list containing an attribute dict and child nodes.
   )
   def render(self, **kwargs):
 
-    line_prefix = _kwarg_with_default(kwargs, 'line_prefix')
+    line_prefix = get_kwarg_with_default(kwargs, 'line_prefix')
     tag = self.tag
     attributes = self.attributes.render(**kwargs)
     kwargs['line_prefix'] = line_prefix + '  '
     nodes = self.nodes
     content = nodes.render(**kwargs)
-    if nodes.preferred_render_style(**kwargs) == render_block:
+    if nodes.preferred_render_style(**kwargs) == RENDER_BLOCK:
       template = self._render_template_block
     else:
       template = self._render_template_inline
@@ -724,11 +667,11 @@ class Nodes(HTYAML):
 
   def preferred_render_style(self, **kwargs):
     if len(self) == 0:
-      return render_inline
+      return RENDER_INLINE
     for node in self:
-      if node.preferred_render_style(**kwargs) == render_block:
-        return render_block
-    return render_inline
+      if node.preferred_render_style(**kwargs) == RENDER_BLOCK:
+        return RENDER_BLOCK
+    return RENDER_INLINE
 
 
   @classmethod
@@ -740,7 +683,7 @@ class Nodes(HTYAML):
     if len(self) is 0:
       return ''
 
-    if self.preferred_render_style(**kwargs) == render_block:
+    if self.preferred_render_style(**kwargs) == RENDER_BLOCK:
       return '\n'.join(node.render(**kwargs) for node in self)
 
     kwargs['line_prefix'] = ''

@@ -76,7 +76,7 @@ Gets rendered (with the Markdown option) as:
 There are also building blocks in place for a tweaked version of the
 YAML parser that:
 
-- treats everything as a string literal (i.e. so we avoid problems like
+- treats everything as a string literal (dso we avoid problems like
   'on' being rendered as 'true')
 - has special handling for strings beginning with '$', especially as keys
   in dictionaries

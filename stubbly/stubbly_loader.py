@@ -1,7 +1,6 @@
 
 import yaml
 from .node_graph_filter import scalars_to_strings
-from .htyaml import Nodes
 
 def load(yaml_src):
   loader = yaml.Loader(yaml_src)
