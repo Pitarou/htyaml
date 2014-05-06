@@ -1,5 +1,4 @@
 from .stubbly import SingletonStubblyObject
-
 class QuoteAsStrings(SingletonStubblyObject):
 
   resolver_regexp = r'^\$quote-as-strings$'

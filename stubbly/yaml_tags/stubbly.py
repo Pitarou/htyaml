@@ -28,6 +28,7 @@ class StubblyObjectMetaclass(yaml.YAMLObjectMetaclass):
         first = first 
       )
 
+
 StubblyObject = StubblyObjectMetaclass(
   'StubblyObject', (yaml.YAMLObject,), {}
 )
