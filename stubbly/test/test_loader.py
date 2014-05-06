@@ -1,6 +1,6 @@
 from unittest import TestCase
 from ..yaml_tags import *
-from ..stubbly_loader import load
+from ..loader import load
 
 class TestLoad(TestCase):
 

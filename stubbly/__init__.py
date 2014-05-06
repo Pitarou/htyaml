@@ -1,1 +1,1 @@
-from .stubbly_loader import load
+from .loader import load
